@@ -1,0 +1,8 @@
+Vorlagen/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+.netlify/
+.deploy-cache/
+tools/

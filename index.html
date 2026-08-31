@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0c10" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Dienstplan" />
+    <title>Mein Dienstplan</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <input id="file-input" type="file" accept=".csv,text/csv,.txt" hidden />
+
+    <header class="top">
+      <button id="btn-prev" class="icon-btn" type="button" aria-label="Voriger Monat">‹</button>
+      <div class="top-center">
+        <p class="kicker" id="person-label">Jan Bitzer</p>
+        <h1 id="month-title">Monat</h1>
+      </div>
+      <button id="btn-next" class="icon-btn" type="button" aria-label="Nächster Monat">›</button>
+    </header>
+
+    <main>
+      <section id="hero" class="hero"></section>
+      <section id="calendar" class="cal-wrap"></section>
+      <section id="list" class="list-wrap"></section>
+      <p id="hint" class="hint" hidden></p>
+    </main>
+
+    <nav class="dock" aria-label="Aktionen">
+      <button id="btn-upload" type="button">
+        <span>CSV laden</span>
+      </button>
+      <button id="btn-ics" type="button" class="ghost">
+        <span>In den Kalender</span>
+      </button>
+      <button id="btn-settings" type="button" class="ghost icon" aria-label="Einstellungen">⚙</button>
+    </nav>
+
+    <dialog id="day-dialog" class="sheet">
+      <div id="day-body"></div>
+      <button id="btn-close-day" type="button" class="sheet-close">Schließen</button>
+    </dialog>
+
+    <dialog id="settings-dialog" class="sheet settings">
+      <div id="settings-body"></div>
+      <button id="btn-close-settings" type="button" class="sheet-close">Fertig</button>
+    </dialog>
+
+    <dialog id="pick-dialog" class="sheet">
+      <div id="pick-body"></div>
+    </dialog>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
