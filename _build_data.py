@@ -76,7 +76,15 @@ for p in plaene:
             if jan
             else None,
             "days": jan["days"] if jan else [],
-            "names": [f"{x['last']}, {x['first']}" for x in p["people"]],
+            "team": [
+                {
+                    "first": x["first"],
+                    "last": x["last"],
+                    "codes": [d["code"] for d in x["days"]],
+                }
+                for x in p["people"]
+                if not jan or x["last"] != jan["last"] or x["first"] != jan["first"]
+            ],
         }
     )
 

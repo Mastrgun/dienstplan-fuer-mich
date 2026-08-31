@@ -159,6 +159,13 @@ function personToMonth(parsed, person, fileName) {
       urlaub: person.urlaub,
     },
     days: person.days,
+    team: parsed.people
+      .filter((item) => item.last !== person.last || item.first !== person.first)
+      .map((item) => ({
+        first: item.first,
+        last: item.last,
+        codes: item.days.map((day) => day.code),
+      })),
   };
 }
 
@@ -202,13 +209,21 @@ function saveState() {
 }
 
 function seedBundled() {
-  if (Object.keys(state.months).length) return;
   const bundled = window.BUNDLED_PLAENE || [];
+  let changed = false;
   for (const month of bundled) {
     if (!month.person) continue;
-    state.months[monthKey(month.year, month.month)] = month;
+    const key = monthKey(month.year, month.month);
+    const existing = state.months[key];
+    if (!existing) {
+      state.months[key] = month;
+      changed = true;
+    } else if ((!existing.team || !existing.team.length) && month.team) {
+      existing.team = month.team;
+      changed = true;
+    }
   }
-  if (Object.keys(state.months).length) saveState();
+  if (changed) saveState();
 }
 
 function currentMonth() {
@@ -249,6 +264,29 @@ function formatHours(value) {
 function formatBreak(info) {
   if (!info.breakMin) return "";
   return `Pause ${info.breakMin} Min`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function colleaguesOnDay(month, dayNum) {
+  if (!month.team || !month.team.length) return [];
+  const list = [];
+  for (const person of month.team) {
+    const code = Array.isArray(person.codes)
+      ? person.codes[dayNum - 1] || ""
+      : ((person.days || []).find((day) => day.day === dayNum) || {}).code || "";
+    const info = shiftInfo(code);
+    if (!isWork(info)) continue;
+    list.push({ person, info });
+  }
+  list.sort((a, b) => (a.info.start || "99:99").localeCompare(b.info.start || "99:99"));
+  return list;
 }
 
 function isoDate(year, month, day) {
@@ -627,12 +665,31 @@ function openDay(dayNum) {
   const info = shiftInfo(entry.code);
   const wd = weekdayName(month.year, month.month, dayNum);
   const extras = [formatHours(info.duration), formatBreak(info)].filter(Boolean).join(" · ");
+  const mates = colleaguesOnDay(month, dayNum);
+  let matesHtml = "";
+  if (!month.team) {
+    matesHtml = `<p class="hint">Kollegen erscheinen, sobald du den Monatsplan als CSV neu lädst.</p>`;
+  } else if (mates.length) {
+    matesHtml = `
+      <h3 class="mates-title">Mit im Dienst · ${mates.length}</h3>
+      ${mates
+        .map(({ person, info: shift }) => {
+          const name = `${person.first} ${person.last}`.trim();
+          return `<div class="mate">
+            <span class="who">${escapeHtml(name)}</span>
+            <span class="shift">${escapeHtml(shift.name)}${formatRange(shift) ? `<small>${escapeHtml(formatRange(shift))}</small>` : ""}</span>
+          </div>`;
+        })
+        .join("")}`;
+  } else if (isWork(info)) {
+    matesHtml = `<h3 class="mates-title">Mit im Dienst</h3><p class="hint">An dem Tag ist sonst niemand eingeteilt.</p>`;
+  }
   $("day-body").innerHTML = `
     <p class="muted">${wd}, ${dayNum}. ${MONTHS_DE[month.month - 1]} ${month.year}</p>
-    <h2>${info.name}</h2>
-    <p class="muted">${formatRange(info) || "Ganztägig"}${info.code ? ` · ${info.code}` : ""}</p>
-    ${extras ? `<p class="muted">${extras}</p>` : ""}
-    <p class="hint">Soll-Stunden im Monat: ${month.person.soll || "–"} · Ist: ${month.person.ist || "–"}</p>`;
+    <h2>${escapeHtml(info.name)}</h2>
+    <p class="muted">${formatRange(info) || "Ganztägig"}${info.code ? ` · ${escapeHtml(info.code)}` : ""}</p>
+    ${extras ? `<p class="muted">${escapeHtml(extras)}</p>` : ""}
+    ${matesHtml}`;
   $("day-dialog").showModal();
 }
 
