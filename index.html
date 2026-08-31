@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <input id="file-input" type="file" accept=".csv,text/csv,.txt" hidden />
+    <input id="file-input" class="file-input" type="file" accept=".csv,text/csv,.txt" />
 
     <header class="top">
       <button id="btn-prev" class="icon-btn" type="button" aria-label="Voriger Monat">‹</button>
@@ -40,9 +40,7 @@
     </main>
 
     <nav class="dock" aria-label="Aktionen">
-      <button id="btn-upload" type="button">
-        <span>CSV laden</span>
-      </button>
+      <label id="btn-upload" class="dock-btn" for="file-input">CSV laden</label>
       <button id="btn-ics" type="button" class="ghost">
         <span>In den Kalender</span>
       </button>

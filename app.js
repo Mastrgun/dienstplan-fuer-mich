@@ -49,6 +49,34 @@ const SHIFT_DEFAULTS = {
 
 const $ = (id) => document.getElementById(id);
 
+function openSheet(id) {
+  const el = $(id);
+  if (!el) return;
+  try {
+    if (typeof el.showModal === "function") {
+      if (!el.open) el.showModal();
+      return;
+    }
+  } catch {
+    /* older browsers */
+  }
+  el.setAttribute("open", "");
+}
+
+function closeSheet(id) {
+  const el = $(id);
+  if (!el) return;
+  try {
+    if (typeof el.close === "function" && el.open) {
+      el.close();
+      return;
+    }
+  } catch {
+    /* older browsers */
+  }
+  el.removeAttribute("open");
+}
+
 const state = {
   personLast: "Bitzer",
   personFirst: "Jan",
@@ -690,7 +718,7 @@ function openDay(dayNum) {
     <p class="muted">${formatRange(info) || "Ganztägig"}${info.code ? ` · ${escapeHtml(info.code)}` : ""}</p>
     ${extras ? `<p class="muted">${escapeHtml(extras)}</p>` : ""}
     ${matesHtml}`;
-  $("day-dialog").showModal();
+  openSheet("day-dialog");
 }
 
 function renderSettings() {
@@ -771,12 +799,12 @@ function pickPerson(parsed, fileName) {
         )
         .join("")}
     </div>`;
-  $("pick-dialog").showModal();
+  openSheet("pick-dialog");
   $("pick-body").onclick = (event) => {
     const btn = event.target.closest("button[data-i]");
     if (!btn) return;
     const person = parsed.people[Number(btn.dataset.i)];
-    $("pick-dialog").close();
+    closeSheet("pick-dialog");
     importPerson(parsed, person, fileName);
   };
 }
@@ -824,7 +852,6 @@ function init() {
 
   $("btn-prev").addEventListener("click", () => shiftMonth(-1));
   $("btn-next").addEventListener("click", () => shiftMonth(1));
-  $("btn-upload").addEventListener("click", () => $("file-input").click());
   $("file-input").addEventListener("change", (event) => {
     const file = event.target.files && event.target.files[0];
     if (file) onFile(file);
@@ -841,18 +868,18 @@ function init() {
   });
   $("btn-settings").addEventListener("click", () => {
     renderSettings();
-    $("settings-dialog").showModal();
+    openSheet("settings-dialog");
   });
-  $("btn-close-day").addEventListener("click", () => $("day-dialog").close());
+  $("btn-close-day").addEventListener("click", () => closeSheet("day-dialog"));
   $("btn-close-settings").addEventListener("click", () => {
     state.seenHint = true;
     saveState();
-    $("settings-dialog").close();
+    closeSheet("settings-dialog");
     render();
   });
   ["day-dialog", "settings-dialog", "pick-dialog"].forEach((id) => {
     $(id).addEventListener("click", (event) => {
-      if (event.target === $(id)) $(id).close();
+      if (event.target === $(id)) closeSheet(id);
     });
   });
   document.addEventListener("dragover", (event) => {

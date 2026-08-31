@@ -14,7 +14,7 @@
   --leave: #8fce8a;
   --danger: #e07a6a;
   --radius: 22px;
-  --dock: 5.5rem;
+  --dock: 6.4rem;
   --font: "Outfit", system-ui, sans-serif;
   --display: "Syne", "Outfit", sans-serif;
 }
@@ -23,6 +23,12 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 html,
@@ -60,7 +66,7 @@ select {
   gap: 0.5rem;
   padding: calc(0.7rem + env(safe-area-inset-top)) 0.85rem 0.7rem;
   background: linear-gradient(to bottom, #0b0c10 70%, transparent);
-  z-index: 10;
+  z-index: 25;
 }
 
 .top-center {
@@ -215,10 +221,11 @@ h1 {
 
 .cell {
   appearance: none;
+  -webkit-appearance: none;
   border: 0;
   background: #14171f;
   border-radius: 12px;
-  min-height: 3.35rem;
+  min-height: 3.5rem;
   padding: 0.28rem 0.1rem 0.3rem;
   display: flex;
   flex-direction: column;
@@ -226,6 +233,9 @@ h1 {
   justify-content: center;
   gap: 0.12rem;
   cursor: pointer;
+  touch-action: manipulation;
+  position: relative;
+  z-index: 1;
 }
 
 .cell.empty {
@@ -365,19 +375,27 @@ h1 {
   width: min(430px, 100%);
   display: flex;
   gap: 0.45rem;
-  padding: 0.7rem 0.85rem calc(0.7rem + env(safe-area-inset-bottom));
+  padding: 0.7rem 0.85rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(to top, #0b0c10 78%, transparent);
+  z-index: 20;
+  pointer-events: none;
 }
 
-.dock button {
+.dock button,
+.dock label.dock-btn {
+  pointer-events: auto;
   border: 0;
   background: var(--early);
   color: #1a1208;
   font-weight: 700;
   border-radius: 16px;
-  min-height: 2.9rem;
+  min-height: 3rem;
   padding: 0 0.95rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .dock button.ghost {
@@ -398,19 +416,42 @@ h1 {
   flex: 1;
 }
 
-.sheet {
+.file-input {
+  position: fixed;
+  left: -100vw;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+dialog.sheet {
+  display: none !important;
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: 0;
+  top: auto;
+  transform: translateX(-50%);
   width: min(430px, 100%);
-  max-height: min(88vh, 720px);
+  max-height: min(80dvh, 720px);
   overflow-y: auto;
-  margin: auto 0 0 auto;
+  margin: 0;
   border: 0;
   border-radius: 24px 24px 0 0;
   background: #151821;
   color: var(--ink);
-  padding: 1.1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  padding: 1.1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  pointer-events: none;
 }
 
-.sheet::backdrop {
+dialog.sheet[open] {
+  display: block !important;
+  pointer-events: auto;
+}
+
+dialog.sheet::backdrop {
   background: rgba(0, 0, 0, 0.55);
 }
 
