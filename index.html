@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <input id="file-input" class="file-input" type="file" accept=".csv,text/csv,.txt" />
+    <input id="file-input" class="file-input" type="file" accept=".csv,text/csv,.txt,text/plain,*/*" />
 
     <header class="top">
       <button id="btn-prev" class="icon-btn" type="button" aria-label="Voriger Monat">‹</button>
@@ -34,6 +34,7 @@
 
     <main>
       <section id="hero" class="hero"></section>
+      <p id="status" class="status" hidden></p>
       <section id="calendar" class="cal-wrap"></section>
       <section id="list" class="list-wrap"></section>
       <p id="hint" class="hint" hidden></p>

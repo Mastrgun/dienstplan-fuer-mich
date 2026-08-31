@@ -77,6 +77,46 @@ function closeSheet(id) {
   el.removeAttribute("open");
 }
 
+function showStatus(message, kind) {
+  const el = $("status");
+  if (!el) return;
+  if (!message) {
+    el.hidden = true;
+    el.textContent = "";
+    el.className = "status";
+    return;
+  }
+  el.hidden = false;
+  el.textContent = message;
+  el.className = "status" + (kind ? " " + kind : "");
+}
+
+function decodeBuffer(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b) {
+    throw new Error("Das ist eine Excel-Datei. Bitte als CSV speichern und die CSV hier laden.");
+  }
+  if (bytes.length >= 8 && bytes[0] === 0xd0 && bytes[1] === 0xcf) {
+    throw new Error("Das ist eine alte Excel-Datei. Bitte als CSV speichern und die CSV hier laden.");
+  }
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+    return new TextDecoder("utf-16le").decode(bytes);
+  }
+  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+    return new TextDecoder("utf-16be").decode(bytes);
+  }
+  let utf8 = new TextDecoder("utf-8").decode(bytes);
+  const bad = (utf8.match(/\uFFFD/g) || []).length;
+  if (bad > 2) {
+    try {
+      utf8 = new TextDecoder("windows-1252").decode(bytes);
+    } catch {
+      utf8 = new TextDecoder("iso-8859-1").decode(bytes);
+    }
+  }
+  return utf8;
+}
+
 const state = {
   personLast: "Bitzer",
   personFirst: "Jan",
@@ -126,32 +166,41 @@ function parseCsvLine(line, delimiter) {
 }
 
 function parseDateDE(value) {
-  const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec((value || "").trim());
+  const m = /(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec((value || "").trim());
   if (!m) return null;
   return { day: Number(m[1]), month: Number(m[2]), year: Number(m[3]) };
 }
 
 function parseTeamCsv(text) {
-  const rawLines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.length);
-  if (rawLines.length < 3) throw new Error("Die Datei sieht nicht nach einem Dienstplan aus.");
+  const rawLines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r\n|\n|\r/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length);
+  if (rawLines.length < 3) {
+    throw new Error("Die Datei hat zu wenige Zeilen. Bitte die CSV vom Dienstplan laden, nicht PDF oder Foto.");
+  }
   const first = rawLines[0];
   const delimiter = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ";" : ",";
   const rows = rawLines.map((line) => parseCsvLine(line, delimiter));
 
-  const start = parseDateDE(rows[0][0]);
-  const end = parseDateDE(rows[1][0]);
-  if (!start || !end) throw new Error("Oben in der Datei fehlt das Monatsdatum.");
+  const start = parseDateDE(rows[0][0]) || parseDateDE(rows[0].join(" "));
+  const end = parseDateDE(rows[1][0]) || parseDateDE(rows[1].join(" "));
+  if (!start || !end) {
+    throw new Error("Oben in der Datei fehlt das Monatsdatum (z. B. 01.04.2026).");
+  }
 
   const dayCols = [];
   rows[0].forEach((cell, index) => {
-    if (index >= 5 && /^\d+$/.test(cell)) dayCols.push({ index, day: Number(cell) });
+    if (index >= 4 && /^\d+$/.test(cell)) dayCols.push({ index, day: Number(cell) });
   });
   if (!dayCols.length) throw new Error("In der Datei wurden keine Tage gefunden.");
 
   const people = [];
   for (let i = 2; i < rows.length; i++) {
     const row = rows[i];
-    if (row[4] === "P" && row[0]) {
+    const planIdx = row.findIndex((cell) => cell === "P");
+    if (planIdx >= 0 && row[0]) {
       const next = rows[i + 1] || [];
       people.push({
         last: row[0],
@@ -167,7 +216,9 @@ function parseTeamCsv(text) {
       });
     }
   }
-  if (!people.length) throw new Error("In der Datei wurden keine Personen gefunden.");
+  if (!people.length) {
+    throw new Error("In der Datei wurden keine Personen gefunden. Ist es die Team-CSV?");
+  }
 
   return { start, end, year: start.year, month: start.month, people };
 }
@@ -220,20 +271,24 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({
-      personLast: state.personLast,
-      personFirst: state.personFirst,
-      months: state.months,
-      shifts: state.shifts,
-      shiftCatalogVersion: SHIFT_CATALOG_VERSION,
-      reminderMinutes: state.reminderMinutes;
-      seenHint: state.seenHint,
-      viewYear: state.viewYear,
-      viewMonth: state.viewMonth,
-    })
-  );
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        personLast: state.personLast,
+        personFirst: state.personFirst,
+        months: state.months,
+        shifts: state.shifts,
+        shiftCatalogVersion: SHIFT_CATALOG_VERSION,
+        reminderMinutes: state.reminderMinutes,
+        seenHint: state.seenHint,
+        viewYear: state.viewYear,
+        viewMonth: state.viewMonth,
+      })
+    );
+  } catch {
+    showStatus("Der Plan ist da, Speichern auf dem Handy hat nicht geklappt.", "err");
+  }
 }
 
 function seedBundled() {
@@ -781,9 +836,14 @@ function renderSettings() {
 }
 
 function pickPerson(parsed, fileName) {
-  const wanted = parsed.people.filter(
-    (p) => p.last.toLowerCase() === state.personLast.toLowerCase()
-  );
+  const wanted = parsed.people.filter((p) => {
+    const last = p.last.toLowerCase();
+    const first = p.first.toLowerCase();
+    return (
+      last === state.personLast.toLowerCase() ||
+      (first === state.personFirst.toLowerCase() && last.includes("bitz"))
+    );
+  });
   if (wanted.length === 1) {
     importPerson(parsed, wanted[0], fileName);
     return;
@@ -819,16 +879,53 @@ function importPerson(parsed, person, fileName) {
   state.seenHint = true;
   saveState();
   render();
+  window.scrollTo(0, 0);
+  showStatus(
+    `${MONTHS_DE[month.month - 1]} ${month.year} für ${person.first} ${person.last} ist geladen.`,
+    "ok"
+  );
 }
 
 async function onFile(file) {
+  showStatus(`Lese ${file.name || "Datei"} …`, "info");
   try {
-    const text = await file.text();
+    const buffer = file.arrayBuffer ? await file.arrayBuffer() : await readWithFileReader(file);
+    const text = decodeBuffer(buffer);
     const parsed = parseTeamCsv(text);
     pickPerson(parsed, file.name);
   } catch (err) {
-    alert(err.message || "Die Datei konnte nicht gelesen werden.");
+    showStatus(err.message || "Die Datei konnte nicht gelesen werden.", "err");
   }
+}
+
+function readWithFileReader(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Die Datei konnte nicht geöffnet werden."));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function startFileRead(file, input) {
+  if (!file) return;
+  showStatus(`Lese ${file.name || "Datei"} …`, "info");
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (input) input.value = "";
+    try {
+      const text = decodeBuffer(reader.result);
+      const parsed = parseTeamCsv(text);
+      pickPerson(parsed, file.name);
+    } catch (err) {
+      showStatus(err.message || "Die Datei konnte nicht gelesen werden.", "err");
+    }
+  };
+  reader.onerror = () => {
+    if (input) input.value = "";
+    showStatus("Die Datei konnte nicht geöffnet werden.", "err");
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function registerSw() {
@@ -853,9 +950,9 @@ function init() {
   $("btn-prev").addEventListener("click", () => shiftMonth(-1));
   $("btn-next").addEventListener("click", () => shiftMonth(1));
   $("file-input").addEventListener("change", (event) => {
-    const file = event.target.files && event.target.files[0];
-    if (file) onFile(file);
-    event.target.value = "";
+    const input = event.target;
+    const file = input.files && input.files[0];
+    startFileRead(file, input);
   });
   $("btn-ics").addEventListener("click", () => {
     if (!monthKeysSorted().length) return;
