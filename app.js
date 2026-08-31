@@ -1,4 +1,5 @@
 const STORAGE_KEY = "mein-dienst-v1";
+const SHIFT_CATALOG_VERSION = 2;
 const MONTHS_DE = [
   "Januar",
   "Februar",
@@ -23,21 +24,24 @@ const SHIFT_DEFAULTS = {
   MS: { name: "Mutterschutz", start: "", end: "", kind: "leave" },
   BV: { name: "BV", start: "", end: "", kind: "leave" },
   FB: { name: "Fortbildung", start: "08:00", end: "16:00", kind: "day" },
-  N: { name: "Nachtdienst", start: "21:00", end: "06:00", kind: "night" },
-  N2: { name: "Nachtdienst 2", start: "22:00", end: "06:30", kind: "night" },
-  1: { name: "Dienst 1:00", start: "01:00", end: "09:00", kind: "early" },
-  2: { name: "Dienst 2:00", start: "02:00", end: "10:00", kind: "early" },
-  4: { name: "Dienst 4:00", start: "04:00", end: "12:00", kind: "early" },
-  5: { name: "Dienst 5:00", start: "05:00", end: "13:00", kind: "early" },
-  7: { name: "Dienst 7:00", start: "07:00", end: "15:00", kind: "day" },
-  10: { name: "Dienst 10:00", start: "10:00", end: "18:00", kind: "day" },
-  11: { name: "Dienst 11:00", start: "11:00", end: "19:00", kind: "late" },
-  12: { name: "Dienst 12:00", start: "12:00", end: "20:00", kind: "late" },
-  14: { name: "Dienst 14:00", start: "14:00", end: "22:00", kind: "late" },
-  GSB: { name: "GSB", start: "07:00", end: "15:00", kind: "day" },
-  SFT: { name: "SFT", start: "13:00", end: "21:00", kind: "late" },
-  ST: { name: "ST", start: "08:00", end: "16:00", kind: "day" },
-  SF: { name: "SF", start: "14:00", end: "22:00", kind: "late" },
+  1: { name: "Dienst 1", start: "07:00", end: "15:30", breakMin: 30, duration: 8.0, kind: "early" },
+  2: { name: "Dienst 2", start: "07:00", end: "13:15", breakMin: 15, duration: 6.0, kind: "early" },
+  4: { name: "Dienst 4", start: "08:00", end: "16:30", breakMin: 30, duration: 8.0, kind: "early" },
+  5: { name: "Dienst 5", start: "08:00", end: "14:15", breakMin: 15, duration: 6.0, kind: "early", color: "#d5dbdb" },
+  "5B": { name: "Dienst 5B", start: "08:00", end: "14:15", breakMin: 15, duration: 6.0, kind: "early" },
+  7: { name: "Dienst 7", start: "09:30", end: "18:00", breakMin: 30, duration: 8.0, kind: "day" },
+  10: { name: "Dienst 10", start: "12:30", end: "20:45", breakMin: 30, duration: 7.75, kind: "late" },
+  11: { name: "Dienst 11", start: "14:30", end: "20:45", breakMin: 30, duration: 5.75, kind: "late" },
+  12: { name: "Dienst 12", start: "16:45", end: "20:45", breakMin: 15, duration: 3.75, kind: "late" },
+  14: { name: "Dienst 14", start: "08:00", end: "13:15", breakMin: 15, duration: 5.0, kind: "early" },
+  N: { name: "Nachtdienst", start: "20:45", end: "07:00", breakMin: 45, duration: 9.5, kind: "night", color: "#d70428" },
+  N2: { name: "Nachtdienst 2", start: "19:45", end: "07:00", breakMin: 45, duration: 10.5, kind: "night", color: "#f5010a" },
+  NS: { name: "Nachtdienst NS", start: "19:45", end: "07:00", breakMin: 45, duration: 10.5, kind: "night", color: "#e1031e" },
+  SF: { name: "SF", start: "07:00", end: "13:30", breakMin: 15, duration: 6.25, kind: "early" },
+  ST: { name: "ST", start: "13:30", end: "19:45", breakMin: 15, duration: 6.0, kind: "late" },
+  SFT: { name: "SFT", start: "07:00", end: "19:45", breakMin: 60, duration: 11.75, kind: "day" },
+  B: { name: "B", start: "08:00", end: "16:30", breakMin: 30, duration: 8.0, kind: "early" },
+  GSB: { name: "GSB", start: "08:00", end: "16:30", breakMin: 30, duration: 8.0, kind: "day" },
   LZK: { name: "LZK", start: "08:00", end: "16:00", kind: "day" },
   DB: { name: "DB", start: "08:00", end: "16:00", kind: "day" },
   IBF: { name: "IBF", start: "08:00", end: "16:00", kind: "day" },
@@ -166,7 +170,11 @@ function loadState() {
     if (saved.personLast) state.personLast = saved.personLast;
     if (saved.personFirst) state.personFirst = saved.personFirst;
     if (saved.months) state.months = saved.months;
-    if (saved.shifts) state.shifts = { ...SHIFT_DEFAULTS, ...saved.shifts };
+    if (saved.shiftCatalogVersion === SHIFT_CATALOG_VERSION && saved.shifts) {
+      state.shifts = { ...SHIFT_DEFAULTS, ...saved.shifts };
+    } else {
+      state.shifts = { ...SHIFT_DEFAULTS };
+    }
     if (saved.reminderMinutes) state.reminderMinutes = saved.reminderMinutes;
     if (saved.seenHint) state.seenHint = true;
     if (saved.viewYear) state.viewYear = saved.viewYear;
@@ -184,7 +192,8 @@ function saveState() {
       personFirst: state.personFirst,
       months: state.months,
       shifts: state.shifts,
-      reminderMinutes: state.reminderMinutes,
+      shiftCatalogVersion: SHIFT_CATALOG_VERSION,
+      reminderMinutes: state.reminderMinutes;
       seenHint: state.seenHint,
       viewYear: state.viewYear,
       viewMonth: state.viewMonth,
@@ -214,13 +223,6 @@ function shiftInfo(code) {
   const clean = (code || "").split("/")[0].trim();
   if (!clean) return { code: "", name: "kein Eintrag", start: "", end: "", kind: "empty" };
   if (state.shifts[clean]) return { code: clean, ...state.shifts[clean] };
-  if (/^\d+$/.test(clean)) {
-    const hour = Number(clean);
-    const kind = hour < 6 ? "early" : hour < 11 ? "day" : "late";
-    const start = `${pad(hour)}:00`;
-    const endHour = (hour + 8) % 24;
-    return { code: clean, name: `Dienst ${start}`, start, end: `${pad(endHour)}:00`, kind };
-  }
   return { code: clean, name: clean, start: "", end: "", kind: "day" };
 }
 
@@ -228,10 +230,25 @@ function isWork(info) {
   return info.kind !== "off" && info.kind !== "leave" && info.kind !== "empty" && info.code;
 }
 
+function isOvernight(info) {
+  if (info.kind === "night") return true;
+  return Boolean(info.start && info.end && info.end <= info.start);
+}
+
 function formatRange(info) {
   if (!info.start) return "";
-  if (info.kind === "night") return `${info.start} – ${info.end} (+1)`;
+  if (isOvernight(info)) return `${info.start} – ${info.end} (+1)`;
   return `${info.start} – ${info.end}`;
+}
+
+function formatHours(value) {
+  if (value == null || value === "") return "";
+  return String(value).replace(".", ",") + " Std";
+}
+
+function formatBreak(info) {
+  if (!info.breakMin) return "";
+  return `Pause ${info.breakMin} Min`;
 }
 
 function isoDate(year, month, day) {
@@ -318,14 +335,14 @@ function buildIcs() {
             month.month,
             day.day,
             info.end || info.start,
-            info.kind === "night"
+            isOvernight(info)
           )}`
         );
       }
-      lines.push(foldIcs(`SUMMARY:${info.name}`));
+      lines.push(foldIcs(`SUMMARY:${info.name}${info.start ? ` · ${formatRange(info)}` : ""}`));
       lines.push(
         foldIcs(
-          `DESCRIPTION:Dienstplan ${state.personFirst} ${state.personLast} · Kürzel ${info.code}`
+          `DESCRIPTION:Kürzel ${info.code}${info.duration != null ? ` · ${formatHours(info.duration)}` : ""}${info.breakMin ? ` · ${formatBreak(info)}` : ""}`
         )
       );
       if (isWork(info) && state.reminderMinutes > 0) {
@@ -471,7 +488,7 @@ function renderCalendar(month) {
       <button class="cell kind-${info.kind}${isToday ? " today" : ""}${weekend ? " weekend" : ""}"
         type="button" data-day="${day}" ${entry ? "" : "disabled"}>
         <span class="num">${day}</span>
-        <span class="code">${info.code || "·"}</span>
+        <span class="code"${info.color ? ` style="color:${info.color}"` : ""}>${info.code || "·"}</span>
       </button>`);
   }
 
@@ -546,7 +563,7 @@ function renderHint() {
   if (!state.seenHint) {
     hint.hidden = false;
     hint.textContent =
-      "Diese Seite zum Home-Bildschirm legen. Neue Pläne als CSV hier laden – sie bleiben auf dem Handy. Uhrzeiten zu GSB, ST, SFT und Nacht stehen unter Einstellungen.";
+      "Diese Seite zum Home-Bildschirm legen. Neue Pläne als CSV hier laden – sie bleiben auf dem Handy.";
     return;
   }
   hint.hidden = true;
@@ -609,10 +626,12 @@ function openDay(dayNum) {
   if (!entry) return;
   const info = shiftInfo(entry.code);
   const wd = weekdayName(month.year, month.month, dayNum);
+  const extras = [formatHours(info.duration), formatBreak(info)].filter(Boolean).join(" · ");
   $("day-body").innerHTML = `
     <p class="muted">${wd}, ${dayNum}. ${MONTHS_DE[month.month - 1]} ${month.year}</p>
     <h2>${info.name}</h2>
     <p class="muted">${formatRange(info) || "Ganztägig"}${info.code ? ` · ${info.code}` : ""}</p>
+    ${extras ? `<p class="muted">${extras}</p>` : ""}
     <p class="hint">Soll-Stunden im Monat: ${month.person.soll || "–"} · Ist: ${month.person.ist || "–"}</p>`;
   $("day-dialog").showModal();
 }
@@ -628,7 +647,7 @@ function renderSettings() {
   const codes = [...used].sort((a, b) => a.localeCompare(b, "de", { numeric: true }));
   $("settings-body").innerHTML = `
     <h2>Einstellungen</h2>
-    <p class="muted">Zeiten einmal einstellen, dann gelten sie für alle Monate.</p>
+    <p class="muted">Offizielle Dienstzeiten. Nur ändern, wenn sich im Betrieb etwas ändert.</p>
     <div class="field">
       <label>Erinnerung vor Dienstbeginn</label>
       <select id="reminder">
@@ -789,6 +808,7 @@ function init() {
   });
 
   render();
+  saveState();
   registerSw();
 }
 
