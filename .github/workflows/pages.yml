@@ -22,6 +22,7 @@ jobs:
         run: |
           mkdir public
           cp index.html app.js styles.css data.js manifest.json sw.js icon.svg icon-180.png robots.txt public/
+          touch public/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
