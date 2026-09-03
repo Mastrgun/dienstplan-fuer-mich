@@ -447,6 +447,11 @@ h1 {
   line-height: 1;
 }
 
+.dock #btn-reload svg {
+  display: block;
+  flex-shrink: 0;
+}
+
 .dock #btn-upload,
 .dock #btn-ics {
   flex: 1;
