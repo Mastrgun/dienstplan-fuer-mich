@@ -910,13 +910,23 @@ function renderSettings(notice) {
     <h3>Neuen Dienst anlegen</h3>
     <p class="muted">Wenn ein neues Kürzel dazukommt, hier eintragen. Danach kannst du es an einem Tag auswählen.</p>
     <div class="new-shift">
-      <input id="new-code" maxlength="8" placeholder="Kürzel" autocomplete="off" />
-      <input id="new-name" placeholder="Name" autocomplete="off" />
-      <div class="times">
-        <input id="new-start" type="time" aria-label="Beginn" />
-        <input id="new-end" type="time" aria-label="Ende" />
-        <button id="btn-add-shift" type="button">Anlegen</button>
-      </div>
+      <label class="grow">
+        <span>Kürzel</span>
+        <input id="new-code" maxlength="8" placeholder="z. B. 8" autocomplete="off" />
+      </label>
+      <label class="grow wide">
+        <span>Name</span>
+        <input id="new-name" placeholder="z. B. Dienst 8" autocomplete="off" />
+      </label>
+      <label>
+        <span>Beginn</span>
+        <input id="new-start" type="time" />
+      </label>
+      <label>
+        <span>Ende</span>
+        <input id="new-end" type="time" />
+      </label>
+      <button id="btn-add-shift" type="button">Anlegen</button>
     </div>`;
   $("reminder").value = String(state.reminderMinutes);
   $("reminder").addEventListener("change", (event) => {
