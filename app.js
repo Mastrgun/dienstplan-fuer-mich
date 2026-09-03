@@ -934,6 +934,21 @@ function registerSw() {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
 
+async function reloadPage() {
+  const btn = $("btn-reload");
+  if (btn) btn.disabled = true;
+  showStatus("Lade die Seite neu …", "info");
+  try {
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch {
+    /* reload anyway */
+  }
+  window.location.reload();
+}
+
 function init() {
   loadState();
   seedBundled();
@@ -966,6 +981,9 @@ function init() {
   $("btn-settings").addEventListener("click", () => {
     renderSettings();
     openSheet("settings-dialog");
+  });
+  $("btn-reload").addEventListener("click", () => {
+    reloadPage();
   });
   $("btn-close-day").addEventListener("click", () => closeSheet("day-dialog"));
   $("btn-close-settings").addEventListener("click", () => {

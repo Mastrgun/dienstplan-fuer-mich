@@ -431,10 +431,25 @@ h1 {
   font-weight: 600;
 }
 
+.dock button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .dock button.icon {
   flex: 0 0 2.9rem;
   padding: 0;
   font-size: 1.1rem;
+}
+
+.dock #btn-reload {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.dock #btn-reload svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .dock #btn-upload,
