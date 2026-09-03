@@ -282,6 +282,17 @@ h1 {
   color: var(--leave);
 }
 
+.cell.edited::after {
+  content: "";
+  position: absolute;
+  top: 0.22rem;
+  right: 0.22rem;
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 50%;
+  background: var(--early);
+}
+
 .list-wrap {
   margin-top: 1.1rem;
 }
@@ -534,6 +545,95 @@ dialog.sheet::backdrop {
   border-radius: 14px;
   background: var(--bg-card);
   cursor: pointer;
+}
+
+.edited-badge {
+  display: inline-block;
+  margin-left: 0.15rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--early);
+}
+
+.day-edit {
+  margin: 0.95rem 0 0.35rem;
+}
+
+.day-edit label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.day-edit select {
+  width: 100%;
+  background: #0f1117;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.75rem;
+  font-size: 16px;
+}
+
+.day-edit .hint {
+  margin: 0.45rem 0 0;
+}
+
+.btn-restore {
+  width: 100%;
+  margin-top: 0.55rem;
+  min-height: 2.5rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.day-saved {
+  margin: 0.7rem 0 0.2rem;
+}
+
+.new-shift {
+  display: grid;
+  grid-template-columns: 5.4rem 1fr;
+  gap: 0.45rem 0.4rem;
+  margin-bottom: 0.4rem;
+  align-items: end;
+}
+
+.new-shift label {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.new-shift label span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.new-shift label.wide {
+  grid-column: 2 / 3;
+}
+
+.new-shift button {
+  grid-column: 1 / -1;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.65rem 0.6rem;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.new-shift input {
+  background: #0f1117;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 0.6rem;
+  font-size: 16px;
+  width: 100%;
 }
 
 .field {

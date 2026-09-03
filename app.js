@@ -324,6 +324,54 @@ function shiftInfo(code) {
   return { code: clean, name: clean, start: "", end: "", kind: "day" };
 }
 
+function allShiftCodes() {
+  const codes = new Set(Object.keys(SHIFT_DEFAULTS));
+  Object.keys(state.shifts || {}).forEach((code) => {
+    if (code) codes.add(code);
+  });
+  for (const month of Object.values(state.months)) {
+    for (const day of month.days || []) {
+      const code = (day.code || "").split("/")[0].trim();
+      if (code) codes.add(code);
+    }
+  }
+  return [...codes].sort((a, b) => a.localeCompare(b, "de", { numeric: true }));
+}
+
+function isAbsentKind(kind) {
+  return kind === "off" || kind === "leave" || kind === "empty";
+}
+
+function inferKind(start, end) {
+  if (!start) return "leave";
+  if (end && end <= start) return "night";
+  const hour = Number(String(start).split(":")[0]);
+  if (hour < 10) return "early";
+  if (hour >= 14) return "late";
+  return "day";
+}
+
+function isEditedDay(entry) {
+  return Boolean(entry && entry.originalCode != null && entry.originalCode !== (entry.code || ""));
+}
+
+function shiftOptionsHtml(selected) {
+  const codes = allShiftCodes();
+  const clean = (selected || "").split("/")[0].trim();
+  if (clean && !codes.includes(clean)) codes.unshift(clean);
+  const work = [];
+  const off = [];
+  for (const code of codes) {
+    const info = shiftInfo(code);
+    const extra = formatRange(info);
+    const label = extra ? `${code} · ${info.name} · ${extra}` : `${code} · ${info.name}`;
+    const html = `<option value="${escapeHtml(code)}"${code === clean ? " selected" : ""}>${escapeHtml(label)}</option>`;
+    if (isAbsentKind(info.kind)) off.push(html);
+    else work.push(html);
+  }
+  return `<optgroup label="Dienste">${work.join("")}</optgroup><optgroup label="Frei / Abwesend">${off.join("")}</optgroup>`;
+}
+
 function isWork(info) {
   return info.kind !== "off" && info.kind !== "leave" && info.kind !== "empty" && info.code;
 }
@@ -606,7 +654,7 @@ function renderCalendar(month) {
     const isToday =
       month.year === today.year && month.month === today.month && day === today.day;
     cells.push(`
-      <button class="cell kind-${info.kind}${isToday ? " today" : ""}${weekend ? " weekend" : ""}"
+      <button class="cell kind-${info.kind}${isToday ? " today" : ""}${weekend ? " weekend" : ""}${isEditedDay(entry) ? " edited" : ""}"
         type="button" data-day="${day}" ${entry ? "" : "disabled"}>
         <span class="num">${day}</span>
         <span class="code"${info.color ? ` style="color:${info.color}"` : ""}>${info.code || "·"}</span>
@@ -666,7 +714,7 @@ function renderList(month) {
           <button class="row" type="button" data-day="${day.day}">
             <span class="date">${day.day}.<small>${wd}</small></span>
             <span>
-              <span class="title">${info.name}</span>
+              <span class="title">${info.name}${isEditedDay(day) ? ` <span class="edited-badge">Geändert</span>` : ""}</span>
               <span class="meta">${formatRange(info) || "Ganztägig"}</span>
             </span>
             <span class="dot kind-${info.kind}"></span>
@@ -740,7 +788,28 @@ function shiftMonth(delta) {
   render();
 }
 
-function openDay(dayNum) {
+function setDayCode(dayNum, code, options = {}) {
+  const month = currentMonth();
+  if (!month) return;
+  const entry = month.days.find((day) => day.day === dayNum);
+  if (!entry) return;
+  if (options.restore) {
+    if (entry.originalCode == null) return;
+    entry.code = entry.originalCode;
+    delete entry.originalCode;
+  } else {
+    const next = (code || "").trim();
+    if ((entry.code || "") === next) return;
+    if (entry.originalCode == null) entry.originalCode = entry.code || "";
+    entry.code = next;
+    if ((entry.originalCode || "") === (entry.code || "")) delete entry.originalCode;
+  }
+  saveState();
+  render();
+  openDay(dayNum, { saved: true });
+}
+
+function openDay(dayNum, options = {}) {
   const month = currentMonth();
   if (!month) return;
   const entry = month.days.find((day) => day.day === dayNum);
@@ -749,6 +818,7 @@ function openDay(dayNum) {
   const wd = weekdayName(month.year, month.month, dayNum);
   const extras = [formatHours(info.duration), formatBreak(info)].filter(Boolean).join(" · ");
   const mates = colleaguesOnDay(month, dayNum);
+  const edited = isEditedDay(entry);
   let matesHtml = "";
   if (!month.team) {
     matesHtml = `<p class="hint">Kollegen erscheinen, sobald du den Monatsplan als CSV neu lädst.</p>`;
@@ -768,15 +838,32 @@ function openDay(dayNum) {
     matesHtml = `<h3 class="mates-title">Mit im Dienst</h3><p class="hint">An dem Tag ist sonst niemand eingeteilt.</p>`;
   }
   $("day-body").innerHTML = `
-    <p class="muted">${wd}, ${dayNum}. ${MONTHS_DE[month.month - 1]} ${month.year}</p>
+    <p class="muted">${wd}, ${dayNum}. ${MONTHS_DE[month.month - 1]} ${month.year}${edited ? ` <span class="edited-badge">Geändert</span>` : ""}</p>
     <h2>${escapeHtml(info.name)}</h2>
     <p class="muted">${formatRange(info) || "Ganztägig"}${info.code ? ` · ${escapeHtml(info.code)}` : ""}</p>
     ${extras ? `<p class="muted">${escapeHtml(extras)}</p>` : ""}
+    <div class="day-edit">
+      <label for="day-shift">Dienst ändern</label>
+      <select id="day-shift">${shiftOptionsHtml(entry.code)}</select>
+      <p class="hint">Falls sich der Plan ändert, hier einen anderen Dienst wählen. Die Änderung bleibt auf diesem Handy, bis du den Monat neu als CSV lädst.</p>
+      ${edited ? `<button id="btn-restore-day" type="button" class="btn-restore">Ursprünglichen Plan wiederherstellen</button>` : ""}
+    </div>
+    ${options.saved ? `<p class="status ok day-saved">Gespeichert auf diesem Handy.</p>` : ""}
     ${matesHtml}`;
+  const select = $("day-shift");
+  if (select) {
+    select.addEventListener("change", (event) => {
+      setDayCode(dayNum, event.target.value);
+    });
+  }
+  const restore = $("btn-restore-day");
+  if (restore) {
+    restore.addEventListener("click", () => setDayCode(dayNum, "", { restore: true }));
+  }
   openSheet("day-dialog");
 }
 
-function renderSettings() {
+function renderSettings(notice) {
   const used = new Set();
   for (const month of Object.values(state.months)) {
     for (const day of month.days) {
@@ -784,10 +871,14 @@ function renderSettings() {
       if (code) used.add(code);
     }
   }
+  Object.keys(state.shifts || {}).forEach((code) => {
+    if (code && !SHIFT_DEFAULTS[code]) used.add(code);
+  });
   const codes = [...used].sort((a, b) => a.localeCompare(b, "de", { numeric: true }));
   $("settings-body").innerHTML = `
     <h2>Einstellungen</h2>
-    <p class="muted">Offizielle Dienstzeiten. Nur ändern, wenn sich im Betrieb etwas ändert.</p>
+    <p class="muted">Dienstzeiten hier anpassen, wenn sich im Betrieb etwas ändert. Deinen eigenen Dienst an einem Tag änderst du, indem du den Tag antippt.</p>
+    ${notice ? `<p class="status ${notice.kind || "ok"}">${escapeHtml(notice.text)}</p>` : ""}
     <div class="field">
       <label>Erinnerung vor Dienstbeginn</label>
       <select id="reminder">
@@ -807,14 +898,35 @@ function renderSettings() {
         .map((code) => {
           const info = shiftInfo(code);
           return `
-            <div class="shift-edit" data-code="${code}">
-              <span class="code">${code}</span>
-              <input data-field="name" value="${info.name}" />
-              <input data-field="start" type="time" value="${info.start || ""}" />
-              <input data-field="end" type="time" value="${info.end || ""}" />
+            <div class="shift-edit" data-code="${escapeHtml(code)}">
+              <span class="code">${escapeHtml(code)}</span>
+              <input data-field="name" value="${escapeHtml(info.name)}" />
+              <input data-field="start" type="time" value="${escapeHtml(info.start || "")}" />
+              <input data-field="end" type="time" value="${escapeHtml(info.end || "")}" />
             </div>`;
         })
         .join("")}
+    </div>
+    <h3>Neuen Dienst anlegen</h3>
+    <p class="muted">Wenn ein neues Kürzel dazukommt, hier eintragen. Danach kannst du es an einem Tag auswählen.</p>
+    <div class="new-shift">
+      <label class="grow">
+        <span>Kürzel</span>
+        <input id="new-code" maxlength="8" placeholder="z. B. 8" autocomplete="off" />
+      </label>
+      <label class="grow wide">
+        <span>Name</span>
+        <input id="new-name" placeholder="z. B. Dienst 8" autocomplete="off" />
+      </label>
+      <label>
+        <span>Beginn</span>
+        <input id="new-start" type="time" />
+      </label>
+      <label>
+        <span>Ende</span>
+        <input id="new-end" type="time" />
+      </label>
+      <button id="btn-add-shift" type="button">Anlegen</button>
     </div>`;
   $("reminder").value = String(state.reminderMinutes);
   $("reminder").addEventListener("change", (event) => {
@@ -826,13 +938,44 @@ function renderSettings() {
     if (!row) return;
     const code = row.dataset.code;
     const field = event.target.dataset.field;
-    state.shifts[code] = {
+    const next = {
       ...shiftInfo(code),
       [field]: event.target.value,
     };
+    if (field === "start" || field === "end") {
+      next.kind = next.start ? inferKind(next.start, next.end) : next.kind;
+    }
+    state.shifts[code] = next;
     saveState();
     render();
   });
+  $("btn-add-shift").addEventListener("click", addCustomShift);
+}
+
+function addCustomShift() {
+  const code = ($("new-code").value || "").trim().toUpperCase();
+  const name = ($("new-name").value || "").trim();
+  const start = $("new-start").value || "";
+  const end = $("new-end").value || "";
+  if (!code || /[\s;,/]/.test(code)) {
+    renderSettings({ kind: "err", text: "Bitte ein Kürzel ohne Leerzeichen angeben." });
+    return;
+  }
+  if (!name) {
+    renderSettings({ kind: "err", text: "Bitte einen Namen für den Dienst angeben." });
+    return;
+  }
+  const existing = shiftInfo(code);
+  state.shifts[code] = {
+    ...existing,
+    name,
+    start,
+    end,
+    kind: start ? inferKind(start, end) : existing.kind && existing.kind !== "empty" ? existing.kind : "day",
+  };
+  saveState();
+  render();
+  renderSettings({ kind: "ok", text: `Dienst ${code} ist gespeichert.` });
 }
 
 function pickPerson(parsed, fileName) {
