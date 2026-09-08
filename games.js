@@ -188,7 +188,7 @@ function playSnake(root, id) {
   let score = 0;
   let dead = false;
   let started = false;
-  let acc = 0;
+  let lastStep = 0;
   function placeApple() {
     for (let n = 0; n < 200; n++) {
       const cell = { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
@@ -223,17 +223,16 @@ function playSnake(root, id) {
     down: () => turn("down"),
   });
   const stopSwipe = gamesSwipe(canvas, turn);
-  const stop = gamesLoop((dt) => {
+  const stop = gamesLoop((dt, now) => {
     if (!started || dead) {
       draw();
       return;
     }
-    acc += dt;
-    if (acc < 0.16) {
+    if (now - lastStep < 240) {
       draw();
       return;
     }
-    acc = 0;
+    lastStep = now;
     dir = next;
     const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
     if (head.x < 0 || head.y < 0 || head.x >= cols || head.y >= rows || snake.some((p) => p.x === head.x && p.y === head.y)) {
