@@ -1,9 +1,10 @@
-const CACHE = "mein-dienst-v8";
+const CACHE = "mein-dienst-v9";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./games.js",
   "./data.js",
   "./manifest.json",
   "./icon.svg",

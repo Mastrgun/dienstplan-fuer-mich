@@ -934,6 +934,19 @@ function registerSw() {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
 
+function openGames() {
+  const overlay = $("games-overlay");
+  overlay.hidden = false;
+  document.body.classList.add("games-open");
+  if (window.DienstGames) window.DienstGames.renderHub($("games-body"));
+}
+
+function closeGames() {
+  if (window.DienstGames) window.DienstGames.stop();
+  $("games-overlay").hidden = true;
+  document.body.classList.remove("games-open");
+}
+
 async function reloadPage() {
   const btn = $("btn-reload");
   if (btn) btn.disabled = true;
@@ -984,6 +997,11 @@ function init() {
   });
   $("btn-reload").addEventListener("click", () => {
     reloadPage();
+  });
+  $("btn-games").addEventListener("click", () => openGames());
+  $("games-close").addEventListener("click", () => closeGames());
+  $("games-back").addEventListener("click", () => {
+    if (window.DienstGames) window.DienstGames.back($("games-body"));
   });
   $("btn-close-day").addEventListener("click", () => closeSheet("day-dialog"));
   $("btn-close-settings").addEventListener("click", () => {

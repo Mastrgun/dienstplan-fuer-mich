@@ -45,6 +45,14 @@
       <button id="btn-ics" type="button" class="ghost">
         <span>In den Kalender</span>
       </button>
+      <button id="btn-games" type="button" class="ghost icon" aria-label="Spiele" title="Spiele">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="2" />
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M7 13h4M9 11v4" />
+          <circle cx="16" cy="11.5" r="1" fill="currentColor" />
+          <circle cx="18.5" cy="14" r="1" fill="currentColor" />
+        </svg>
+      </button>
       <button id="btn-reload" type="button" class="ghost icon" aria-label="Seite neu laden" title="Seite neu laden">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <path
@@ -82,7 +90,17 @@
       <div id="pick-body"></div>
     </dialog>
 
+    <div id="games-overlay" class="games-overlay" hidden>
+      <header class="games-top">
+        <button id="games-back" class="icon-btn" type="button" aria-label="Zurück">‹</button>
+        <h1 id="games-title">Spiele</h1>
+        <button id="games-close" class="icon-btn" type="button" aria-label="Schließen">✕</button>
+      </header>
+      <div id="games-body" class="games-body"></div>
+    </div>
+
     <script src="data.js"></script>
+    <script src="games.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
