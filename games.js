@@ -175,7 +175,7 @@ function playSnake(root, id) {
   const ui = gamesShell(root);
   const cols = 16;
   const rows = 22;
-  const size = Math.floor(Math.min(root.clientWidth - 8 || 340, 360) / cols);
+  const size = Math.max(10, Math.floor(Math.min(Math.max(root.clientWidth || 340, 280), 360) / cols));
   const { ctx, canvas, w, h } = gamesCanvas(ui.stage, cols * size, rows * size);
   let dir = { x: 1, y: 0 };
   let next = { x: 1, y: 0 };
@@ -184,9 +184,10 @@ function playSnake(root, id) {
     { x: 2, y: 10 },
     { x: 1, y: 10 },
   ];
-  let apple = { x: 8, y: 8 };
+  let apple = { x: 8, y: 10 };
   let score = 0;
   let dead = false;
+  let started = false;
   let acc = 0;
   function placeApple() {
     for (let n = 0; n < 200; n++) {
@@ -202,6 +203,7 @@ function playSnake(root, id) {
     const d = map[which];
     if (!d || (d.x === -dir.x && d.y === -dir.y)) return;
     next = d;
+    started = true;
   }
   function draw() {
     ctx.fillStyle = "#0f1117";
@@ -213,7 +215,7 @@ function playSnake(root, id) {
       ctx.fillRect(p.x * size + 1, p.y * size + 1, size - 2, size - 2);
     });
   }
-  ui.setStatus("Schlange · " + score);
+  ui.setStatus("Schlange · Richtung tippen");
   gamesPad(ui.controls, {
     left: () => turn("left"),
     right: () => turn("right"),
@@ -222,9 +224,12 @@ function playSnake(root, id) {
   });
   const stopSwipe = gamesSwipe(canvas, turn);
   const stop = gamesLoop((dt) => {
-    if (dead) return;
+    if (!started || dead) {
+      draw();
+      return;
+    }
     acc += dt;
-    if (acc < 0.13) {
+    if (acc < 0.16) {
       draw();
       return;
     }
